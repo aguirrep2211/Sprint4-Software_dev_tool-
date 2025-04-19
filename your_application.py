@@ -1,26 +1,39 @@
-
-# Save the notebook with visualizations
+# app.py
 
 import pandas as pd
 import plotly.express as px
+import streamlit as st
+
+# Título de la app
+st.title("Análisis de Datos de Vehículos Usados")
 
 # Cargar datos
-df = pd.read_csv("../vehicles_us.csv")
+@st.cache_data
+def load_data():
+    return pd.read_csv("vehicles_us.csv")  # Assumes the CSV is in the same directory
+
+df = load_data()
+
+# Mostrar tabla de datos
+st.subheader("Vista previa de los datos")
+st.dataframe(df.head())
 
 # Histograma del precio
-fig_price_hist = px.histogram(df, x="price", nbins=100, title="Distribución de Precios")
-fig_price_hist.show()
+st.subheader("Distribución de Precios")
+fig_price_hist = px.histogram(df, x="price", nbins=100)
+st.plotly_chart(fig_price_hist)
 
 # Histograma del kilometraje
-fig_odometer_hist = px.histogram(df, x="odometer", nbins=100, title="Distribución del Kilometraje")
-fig_odometer_hist.show()
+st.subheader("Distribución del Kilometraje")
+fig_odometer_hist = px.histogram(df, x="odometer", nbins=100)
+st.plotly_chart(fig_odometer_hist)
 
 # Scatterplot: precio vs año del modelo
-fig_price_model_year = px.scatter(df, x="model_year", y="price", title="Precio vs Año del Modelo", opacity=0.5)
-fig_price_model_year.show()
+st.subheader("Precio vs Año del Modelo")
+fig_price_model_year = px.scatter(df, x="model_year", y="price", opacity=0.5)
+st.plotly_chart(fig_price_model_year)
 
 # Scatterplot: precio vs kilometraje
-fig_price_odometer = px.scatter(df, x="odometer", y="price", title="Precio vs Kilometraje", opacity=0.5)
-fig_price_odometer.show()
-
-notebook_path = f"{notebook_dir}/EDA.ipynb"
+st.subheader("Precio vs Kilometraje")
+fig_price_odometer = px.scatter(df, x="odometer", y="price", opacity=0.5)
+st.plotly_chart(fig_price_odometer)
