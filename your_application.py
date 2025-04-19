@@ -1,6 +1,6 @@
 
 # Save the notebook with visualizations
-notebook_code = f
+
 import pandas as pd
 import plotly.express as px
 
