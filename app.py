@@ -36,4 +36,4 @@ st.plotly_chart(fig_price_model_year)
 # Scatterplot: precio vs kilometraje
 st.subheader("Precio vs Kilometraje")
 fig_price_odometer = px.scatter(df, x="odometer", y="price", opacity=0.5)
-st.plotly_chart(fig_price_odometer)
+st.plotly_chart(fig_price_odometer) 
