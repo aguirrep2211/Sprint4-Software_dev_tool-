@@ -107,3 +107,4 @@ dashboard = pn.Column(
     "### Price vs Odometer", plot_price_vs_odometer,
     "### Data Preview",
     pn.pane.DataFrame
+)
