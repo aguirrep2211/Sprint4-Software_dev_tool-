@@ -3,6 +3,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import panel as pn
 
 # Título de la app
 st.title("Análisis de Datos de Vehículos Usados")
@@ -37,3 +38,36 @@ st.plotly_chart(fig_price_model_year)
 st.subheader("Precio vs Kilometraje")
 fig_price_odometer = px.scatter(df, x="odometer", y="price", opacity=0.5)
 st.plotly_chart(fig_price_odometer) 
+
+#pannel 
+
+def resumen_por_marca(marca):
+    df_filtrado = vehicles_df[vehicles_df['brand'] == marca]
+    if df_filtrado.empty:
+        return "No hay datos para esta marca."
+
+    # Modelo más frecuente (más vendido)
+    modelo_top = df_filtrado['model_01'].mode().iloc[0]
+    df_modelo = df_filtrado[df_filtrado['model_01'] == modelo_top]
+
+    tipo = df_modelo['type'].mode().iloc[0] if not df_modelo['type'].isna().all() else 'Desconocido'
+    promedio_days_listed = df_modelo['days_listed'].mean()
+
+    return pn.pane.Markdown(f"""
+    ## Resumen by **{marca}**
+    - Most sold model: **{modelo_top}**
+    - Type: **{tipo}**
+    - Average number of days listed: **{promedio_days_listed:.2f}**
+    """)
+
+# Widget brand selection 
+marcas = sorted(vehicles_df['brand'].dropna().unique())
+selector_marca = pn.widgets.Select(name='Marca', options=marcas)
+
+# Interactive pannel 
+panel_interactivo = pn.Column(
+    selector_marca,
+    pn.bind(resumen_por_marca, selector_marca)
+)
+
+panel_interactivo.servable()
