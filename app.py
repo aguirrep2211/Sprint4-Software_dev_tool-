@@ -15,6 +15,19 @@ def load_data():
 
 df = load_data()
 
+# Separar brand y model_01
+df[['brand', 'model_01']] = df['model'].str.split(' ', n=1, expand=True)
+
+# Eliminar la original
+df.drop(columns='model', inplace=True)
+
+# Reordenar columnas para que brand y model_01 estén juntos después de 'price'
+cols = list(df.columns)
+insert_index = cols.index('price') + 1
+new_order = cols[:insert_index] + ['brand', 'model_01'] + [col for col in cols[insert_index:] if col not in ['brand', 'model_01']]
+df = df[new_order]
+
+
 # Mostrar tabla de datos
 st.subheader("Vista previa de los datos")
 st.dataframe(df.head())
@@ -42,7 +55,7 @@ st.plotly_chart(fig_price_odometer)
 #pannel 
 
 def resumen_por_marca(marca):
-    df_filtrado = vehicles_df[vehicles_df['brand'] == marca]
+    df_filtrado = df[df['brand'] == marca]
     if df_filtrado.empty:
         return "No hay datos para esta marca."
 
