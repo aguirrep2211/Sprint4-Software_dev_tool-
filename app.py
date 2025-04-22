@@ -1,86 +1,80 @@
-# app.py
-
 import pandas as pd
-import plotly.express as px
-import streamlit as st
 import panel as pn
+import plotly.express as px
 
-# Título de la app
-st.title("Análisis de Datos de Vehículos Usados")
+pn.extension('plotly')
 
-# Cargar datos
-@st.cache_data
+# Load data
 def load_data():
-    return pd.read_csv("vehicles_us.csv")  # Assumes the CSV is in the same directory
+    df = pd.read_csv("vehicles_us.csv")
+    # Separate brand and model_01 from 'model'
+    df[['brand', 'model_01']] = df['model'].str.split(' ', n=1, expand=True)
+    df.drop(columns='model', inplace=True)
+
+    # Reorder columns to place brand and model_01 after 'price'
+    cols = list(df.columns)
+    insert_index = cols.index('price') + 1
+    new_order = cols[:insert_index] + ['brand', 'model_01'] + [col for col in cols[insert_index:] if col not in ['brand', 'model_01']]
+    df = df[new_order]
+
+    return df
 
 df = load_data()
 
-# Separar brand y model_01
-df[['brand', 'model_01']] = df['model'].str.split(' ', n=1, expand=True)
+# -------- Layout -------- #
 
-# Eliminar la original
-df.drop(columns='model', inplace=True)
+# Data preview
+data_table = pn.pane.DataFrame(df.head(), width=1000)
 
-# Reordenar columnas para que brand y model_01 estén juntos después de 'price'
-cols = list(df.columns)
-insert_index = cols.index('price') + 1
-new_order = cols[:insert_index] + ['brand', 'model_01'] + [col for col in cols[insert_index:] if col not in ['brand', 'model_01']]
-df = df[new_order]
+# Histogram: Price
+fig_price_hist = px.histogram(df, x="price", nbins=100, title="Price Distribution")
+plot_price_hist = pn.pane.Plotly(fig_price_hist)
 
+# Histogram: Odometer
+fig_odometer_hist = px.histogram(df, x="odometer", nbins=100, title="Odometer Distribution")
+plot_odometer_hist = pn.pane.Plotly(fig_odometer_hist)
 
-# Mostrar tabla de datos
-st.subheader("Vista previa de los datos")
-st.dataframe(df.head())
+# Scatter: Price vs Model Year
+fig_price_model_year = px.scatter(df, x="model_year", y="price", opacity=0.5, title="Price vs Model Year")
+plot_price_model_year = pn.pane.Plotly(fig_price_model_year)
 
-# Histograma del precio
-st.subheader("Distribución de Precios")
-fig_price_hist = px.histogram(df, x="price", nbins=100)
-st.plotly_chart(fig_price_hist)
+# Scatter: Price vs Odometer
+fig_price_odometer = px.scatter(df, x="odometer", y="price", opacity=0.5, title="Price vs Odometer")
+plot_price_odometer = pn.pane.Plotly(fig_price_odometer)
 
-# Histograma del kilometraje
-st.subheader("Distribución del Kilometraje")
-fig_odometer_hist = px.histogram(df, x="odometer", nbins=100)
-st.plotly_chart(fig_odometer_hist)
+# Brand selector and summary
+brand_selector = pn.widgets.Select(name="Choose a Brand", options=sorted(df['brand'].dropna().unique()))
 
-# Scatterplot: precio vs año del modelo
-st.subheader("Precio vs Año del Modelo")
-fig_price_model_year = px.scatter(df, x="model_year", y="price", opacity=0.5)
-st.plotly_chart(fig_price_model_year)
+@pn.depends(brand_selector)
+def brand_summary(brand):
+    filtered_df = df[df['brand'] == brand]
+    if filtered_df.empty:
+        return pn.pane.Markdown("### No data available for this brand.")
 
-# Scatterplot: precio vs kilometraje
-st.subheader("Precio vs Kilometraje")
-fig_price_odometer = px.scatter(df, x="odometer", y="price", opacity=0.5)
-st.plotly_chart(fig_price_odometer) 
+    top_model = filtered_df['model_01'].mode().iloc[0]
+    model_df = filtered_df[filtered_df['model_01'] == top_model]
 
-#pannel 
-
-def resumen_por_marca(marca):
-    df_filtrado = df[df['brand'] == marca]
-    if df_filtrado.empty:
-        return "No hay datos para esta marca."
-
-    # Modelo más frecuente (más vendido)
-    modelo_top = df_filtrado['model_01'].mode().iloc[0]
-    df_modelo = df_filtrado[df_filtrado['model_01'] == modelo_top]
-
-    tipo = df_modelo['type'].mode().iloc[0] if not df_modelo['type'].isna().all() else 'Desconocido'
-    promedio_days_listed = df_modelo['days_listed'].mean()
+    car_type = model_df['type'].mode().iloc[0] if not model_df['type'].isna().all() else 'Unknown'
+    avg_days_listed = model_df['days_listed'].mean()
 
     return pn.pane.Markdown(f"""
-    ## Resumen by **{marca}**
-    - Most sold model: **{modelo_top}**
-    - Type: **{tipo}**
-    - Average number of days listed: **{promedio_days_listed:.2f}**
+    ### Summary for **{brand}**
+    - Most sold model: **{top_model}**
+    - Type: **{car_type}**
+    - Average number of days listed: **{avg_days_listed:.2f}**
     """)
 
-# Widget brand selection 
-marcas = sorted(vehicles_df['brand'].dropna().unique())
-selector_marca = pn.widgets.Select(name='Marca', options=marcas)
-
-# Interactive pannel 
-panel_interactivo = pn.Column(
-    selector_marca,
-    pn.bind(resumen_por_marca, selector_marca)
+# Panel layout
+dashboard = pn.Column(
+    "## Used Vehicles Data Analysis",
+    "### Data Preview", data_table,
+    "### Price Distribution", plot_price_hist,
+    "### Odometer Distribution", plot_odometer_hist,
+    "### Price vs Model Year", plot_price_model_year,
+    "### Price vs Odometer", plot_price_odometer,
+    "### Brand Summary",
+    brand_selector,
+    brand_summary
 )
 
-panel_interactivo.servable()
+dashboard.servable()
