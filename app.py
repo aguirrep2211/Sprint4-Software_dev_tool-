@@ -35,7 +35,7 @@ def update_model_options(brand):
     model_select.options = brand_model_dict.get(brand, [])
     model_select.value = model_select.options[0] if model_select.options else None
 
-# Manually update model list at startup
+# Manually update once at startup
 update_model_options(brand_select.value)
 
 # Summary for selected brand and model
@@ -44,11 +44,11 @@ def summarize_model(brand, model):
     filtered = df[(df['brand'] == brand) & (df['model_01'] == model)]
     if filtered.empty:
         return pn.pane.Markdown("No data for this selection.")
-    
+
     car_type = filtered['type'].mode().iloc[0] if not filtered['type'].isna().all() else 'Unknown'
     avg_days = filtered['days_listed'].mean()
     avg_price = filtered['price'].mean()
-    
+
     return pn.pane.Markdown(f"""
     ### Summary for {brand.title()} {model.title()}
     - Type: **{car_type}**
@@ -106,5 +106,7 @@ dashboard = pn.Column(
     "### Price vs Model Year", plot_price_vs_model_year,
     "### Price vs Odometer", plot_price_vs_odometer,
     "### Data Preview",
-    pn.pane.DataFrame
+    pn.pane.DataFrame(df.head(), width=1000)
 )
+
+dashboard.servable()
