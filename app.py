@@ -7,6 +7,24 @@ pn.extension('plotly')
 # Load and prepare data
 def load_data():
     df = pd.read_csv("vehicles_us.csv")
+
+    # Handle missing data
+    # is_4WD: Fill missing values with 0 (assumed non-4WD)
+    df['is_4wd'] = df['is_4wd'].fillna(0)
+
+    # paint_color: Replace missing values with 'Unknown'
+    df['paint_color'] = df['paint_color'].fillna('Unknown')
+
+    # model_year: Fill missing with median per model
+    df['model_year'] = df['model_year'].fillna(df.groupby('model')['model_year'].transform('median'))
+
+    # odometer: Fill missing with median per model
+    df['odometer'] = df['odometer'].fillna(df.groupby('model')['odometer'].transform('median'))
+
+    # cylinders: Fill missing with median per model
+    df['cylinders'] = df['cylinders'].fillna(df.groupby('model')['cylinders'].transform('median'))
+
+    # Feature engineering
     df[['brand', 'model_01']] = df['model'].str.split(' ', n=1, expand=True)
     df.drop(columns='model', inplace=True)
     cols = list(df.columns)
@@ -81,6 +99,12 @@ def plot_price_vs_odometer(brand, model):
     fig = px.scatter(filtered, x="odometer", y="price", title="Price vs Odometer", opacity=0.5)
     return pn.pane.Plotly(fig)
 
+# Additional general visualizations
+hist_paint_color = pn.pane.Plotly(px.histogram(df, x="paint_color", title="Distribution of Paint Colors"))
+scatter_price_vs_odometer = pn.pane.Plotly(px.scatter(df, x="odometer", y="price", title="Price vs Odometer (All Vehicles)", opacity=0.3))
+
+# 
+
 # Introductory markdown text
 intro_text = pn.pane.Markdown("""
 ## Used Vehicles Data Analysis
@@ -94,6 +118,7 @@ Regarding engine specifications, the average number of cylinders is about 6, wit
 Overall, this dataset offers a robust snapshot of the U.S. used vehicle market, suitable for pricing analysis, trend forecasting, and predictive modeling based on attributes like price, condition, year, and model.
 """, width=900)
 
+
 # Dashboard layout
 dashboard = pn.Column(
     intro_text,
@@ -105,6 +130,8 @@ dashboard = pn.Column(
     "### Odometer Distribution", plot_odometer_distribution,
     "### Price vs Model Year", plot_price_vs_model_year,
     "### Price vs Odometer", plot_price_vs_odometer,
+    "### Paint Color Distribution", hist_paint_color,
+    "### Price vs Odometer (All Vehicles)", scatter_price_vs_odometer,
     "### Data Preview",
     pn.pane.DataFrame(df.head(), width=1000)
 )
